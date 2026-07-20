@@ -29,21 +29,23 @@ bash <skill-dir>/scripts/convert_nsys.sh first.nsys-rep second.nsys-rep
 
 The script performs all required steps:
 
-1. Select the newest installed versioned `nsys` CLI without changing the
+1. Verify that `cargo` is already available in `PATH`; fail immediately without
+   downloading or installing it when absent.
+2. Select the newest installed versioned `nsys` CLI without changing the
    system-wide alternative.
-2. Export every report with `nsys export --type=parquetdir
+3. Export every report with `nsys export --type=parquetdir
    --ts-normalize=true`.
-3. Execute the bundled Rust/DataFusion converter with `cargo run --locked
+4. Execute the bundled Rust/DataFusion converter with `cargo run --locked
    --release --manifest-path ...`. Cargo artifacts are cached outside the skill.
-4. Read `StringIds`, CUDA kernel, CUDA Runtime, and NVTX Parquet tables through
+5. Read `StringIds`, CUDA kernel, CUDA Runtime, and NVTX Parquet tables through
    DataFusion.
-5. Keep NVTX push/pop ranges (`eventType = 59`), map process IDs to devices,
+6. Keep NVTX push/pop ranges (`eventType = 59`), map process IDs to devices,
    and project NVTX ranges to kernels through Runtime overlap and
    `correlationId`, matching `nsys2json`.
-6. Write Perfetto JSON without nullable optional keys and add valid numeric
+7. Write Perfetto JSON without nullable optional keys and add valid numeric
    `s`/`f` flow IDs for same-stream kernel dependencies.
-7. Write aligned events and dependency edges as Parquet.
-8. Validate that the JSON is a non-empty array when `jq` is installed.
+8. Write aligned events and dependency edges as Parquet.
+9. Validate that the JSON is a non-empty array when `jq` is installed.
 
 ## Fixed output layout
 

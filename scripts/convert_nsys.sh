@@ -6,6 +6,11 @@ if [[ $# -eq 0 ]]; then
   exit 2
 fi
 
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "Error: cargo is required but was not found in PATH. Install Rust/Cargo separately, then retry." >&2
+  exit 1
+fi
+
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 project_dir="$script_dir/nsys2perfetto-datafusion"
 output_root=/home/ziyang/.nsys-workspace
@@ -29,11 +34,6 @@ if [[ -z "$nsys_bin" ]]; then
   echo "No usable nsys CLI was found." >&2
   exit 1
 fi
-if ! command -v cargo >/dev/null 2>&1; then
-  echo "cargo is required to build the Rust/DataFusion converter." >&2
-  exit 1
-fi
-
 "$nsys_bin" --version
 
 for input in "$@"; do
