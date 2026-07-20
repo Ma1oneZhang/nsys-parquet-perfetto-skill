@@ -1,5 +1,11 @@
 # Output schema
 
+All input timeline tables are optional independently. The corresponding output
+categories are omitted when a kernel, Runtime, memcpy, or NVTX table is absent.
+When `StringIds.parquet` is absent, kernel and Runtime names use stable numeric
+fallbacks. A report containing only Runtime events is exported on an unknown
+device track; an entirely eventless export is rejected.
+
 ## Event Parquet
 
 `<report>.perfetto.parquet` contains matched CUDA Runtime launch calls, CPU

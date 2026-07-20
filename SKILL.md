@@ -40,8 +40,11 @@ The script performs all required steps:
    `cargo run --locked --release --manifest-path ...`. The skill contains no
    Rust source code and Cargo artifacts are cached outside the skill. Set
    `NSYS2PERFETTO_VERSION` only when a reproducible historical version is needed.
-5. Read `StringIds`, CUDA kernel, CUDA memcpy, CUDA Runtime, and NVTX Parquet
-   tables through DataFusion.
+5. Discover `StringIds`, CUDA kernel, CUDA memcpy, CUDA Runtime, and NVTX
+   Parquet tables independently, then read the tables that exist through
+   DataFusion. Missing timeline categories are skipped; missing `StringIds`
+   uses stable numeric fallback names. Fail only when no available table can
+   produce any timeline event.
 6. Keep NVTX push/pop ranges (`eventType = 59`), map process IDs to devices,
    and project NVTX ranges to kernels through Runtime overlap and
    `correlationId`, matching `nsys2json`.
