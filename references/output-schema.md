@@ -36,19 +36,32 @@ dependencies.
 
 ## Perfetto JSON
 
-`<report>.perfetto.json` is a Chrome Trace Event array with:
+`<report>.perfetto.json.gz` is one gzip stream containing only a compressed
+Chrome Trace Event array. It is not an archive and does not contain either
+Parquet output. The JSON contains:
 
 - `cat = cuda` complete kernel events;
+- `cat = cuda_kernel_usage` kernel-only projections on the per-device `CUDA
+  Core Timeline`; overlapping kernels use adjacent lanes and every kernel is
+  projected exactly once;
 - `cat = cuda_api` matched CPU CUDA Runtime launch calls;
 - `cat = cuda_memcpy` H2D, D2H, and D2D hardware copy intervals with detailed
-  byte, memory-kind, device/context, address, and bandwidth arguments;
+  byte, memory-kind, device/context, address, and bandwidth arguments on the
+  original HW context/stream;
+- `cat = cuda_copy_usage` projections on a per-device `PCIe Usage` lane for
+  combined H2D/D2H occupancy and on `GPU Copy D2D` for device copies;
 - `cat = nvtx` CPU NVTX push/pop ranges emitted as ordered `B`/`E` events;
 - `cat = nvtx-kernel` NVTX ranges projected to associated kernels, also emitted
   as ordered `B`/`E` events so Perfetto retains parent-child depth;
 - `cat = cuda_launch_dependency` numeric-ID `s`/`f` flows from the CPU launch
   slice to the corresponding GPU kernel;
+- `cat = cuda_core_launch_dependency` numeric-ID `s`/`f` flows from the CPU
+  launch slice to the corresponding `CUDA Core Timeline` projection;
 - `cat = cuda_memcpy_dependency` numeric-ID `s`/`f` flows from the CPU API
-  slice to the corresponding GPU copy interval.
+  slice to the corresponding original GPU copy interval;
+- `cat = pcie_usage_dependency` numeric-ID `s`/`f` flows from the CPU API slice
+  to the corresponding H2D/D2H `PCIe Usage` projection. D2D copies do not use
+  this category.
 
 Optional fields are omitted when absent. In particular, flow events never emit
 `"dur": null`, which Perfetto counts as `json_tokenizer_failure`.
@@ -58,14 +71,17 @@ Chrome JSON uses numeric process/thread IDs and metadata events to create:
 - `CUDA Device N / Source PID P` process tracks; there is no separate CUDA Host
   Process;
 - `CUDA HW Context C / Stream S` child tracks containing the actual CUPTI
-  kernel execution interval;
+  kernel and memcpy execution intervals;
+- `CUDA Core Timeline` kernel-only device tracks, ordered above all copy and
+  stream tracks;
+- `PCIe Usage` and `GPU Copy D2D` device-level occupancy tracks;
 - `NVTX Kernel T`, `CUDA API T / Lane L`, and `NVTX Thread T` child tracks under
   the matching device. NVTX nesting is represented on one stack track per
   source thread; extra adjacent lanes are used only for overlapping CUDA APIs.
   Equal thread IDs are adjacent and ordered `NVTX Kernel`, `NVTX Thread`, then
   `CUDA API`.
 
-Selecting either a CUDA API launch slice or its GPU kernel slice in Perfetto
-shows their `cuda_launch_dependency` arrow. The kernel arguments include
-`gpuStartNs`, `gpuEndNs`, and `gpuDurationNs`; launch arguments include
-`cpuStartNs`, `cpuEndNs`, and `cpuDurationNs`.
+Selecting either a CUDA API launch slice, its original GPU slice, or its
+device-level Core/PCIe projection in Perfetto shows the corresponding launch
+arrow. Kernel arguments include `gpuStartNs`, `gpuEndNs`, and `gpuDurationNs`;
+launch arguments include `cpuStartNs`, `cpuEndNs`, and `cpuDurationNs`.

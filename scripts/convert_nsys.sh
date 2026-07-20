@@ -83,7 +83,7 @@ for input in "$@"; do
 
   report_dir="$output_root/$report_name"
   parquet_dir="$report_dir/parquet"
-  json_path="$report_dir/$report_name.perfetto.json"
+  json_path="$report_dir/$report_name.perfetto.json.gz"
   event_parquet="$report_dir/$report_name.perfetto.parquet"
   dependency_parquet="$report_dir/$report_name.kernel_dependencies.parquet"
   mkdir -p "$report_dir"
@@ -105,8 +105,9 @@ for input in "$@"; do
     --output-parquet "$event_parquet" \
     --output-dependencies "$dependency_parquet"
 
+  gzip -t "$json_path"
   if command -v jq >/dev/null 2>&1; then
-    jq -e 'type == "array" and length > 0' "$json_path" >/dev/null
+    gzip -cd "$json_path" | jq -e 'type == "array" and length > 0' >/dev/null
   fi
 
   echo "Perfetto JSON: $json_path"
