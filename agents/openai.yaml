@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nsight Parquet to Perfetto"
+  short_description: "Export Nsight reports to aligned Perfetto JSON"
+  default_prompt: "Use $nsys-parquet-perfetto-skill on this nsys-rep path, export everything in one command, and report the final Perfetto JSON path."

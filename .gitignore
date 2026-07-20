@@ -1,0 +1,5 @@
+target/
+**/target/
+*.perfetto.json
+*.perfetto.parquet
+*.kernel_dependencies.parquet
