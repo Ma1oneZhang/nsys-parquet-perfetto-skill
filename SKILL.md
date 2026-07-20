@@ -1,6 +1,6 @@
 ---
 name: nsys-parquet-perfetto-skill
-description: Export NVIDIA Nsight Systems `.nsys-rep` or `.qdrep` reports to native Nsight Parquet tables, then use the published Rust and Apache DataFusion converter to create Perfetto/Chrome Trace JSON, aligned event Parquet, and CUDA stream dependency Parquet. Use when Codex needs a fast, SQLite-free conversion of Nsight CUDA kernel and NVTX timelines, Perfetto-compatible JSON without tokenizer failures, multi-device NVTX-to-kernel projection, or outputs under `$HOME/.nsys-workspace/REPORT_NAME/`.
+description: Export NVIDIA Nsight Systems `.nsys-rep` or `.qdrep` reports to native Nsight Parquet tables, then use the published Rust and Apache DataFusion converter to create Perfetto/Chrome Trace JSON, aligned event Parquet, and CUDA stream dependency Parquet. Use when Codex needs a fast, SQLite-free conversion of Nsight CUDA kernel, CUDA Runtime launch, and NVTX timelines; CPU-launch-to-GPU-kernel flows; Perfetto-compatible JSON without tokenizer failures; multi-device NVTX-to-kernel projection; or outputs under `$HOME/.nsys-workspace/REPORT_NAME/`.
 ---
 
 # Nsight Parquet to Perfetto
@@ -44,8 +44,9 @@ The script performs all required steps:
 6. Keep NVTX push/pop ranges (`eventType = 59`), map process IDs to devices,
    and project NVTX ranges to kernels through Runtime overlap and
    `correlationId`, matching `nsys2json`.
-7. Write Perfetto JSON without nullable optional keys and add valid numeric
-   `s`/`f` flow IDs for same-stream kernel dependencies.
+7. Write matched CUDA Runtime launch slices and connect each CPU launch site to
+   its GPU kernel by `(PID, correlationId)` using numeric Perfetto `s`/`f`
+   flows. Also add separate numeric flows for same-stream kernel dependencies.
 8. Write aligned events and dependency edges as Parquet.
 9. Validate that the JSON is a non-empty array when `jq` is installed.
 
@@ -72,8 +73,9 @@ a user home directory in the script or instructions.
 After conversion, report:
 
 - selected `nsys` version;
-- Rust converter summary counts for kernels, CPU NVTX, projected NVTX,
-  dependencies, JSON events, and Parquet rows;
+- Rust converter summary counts for kernels, linked CUDA API launches,
+  launch dependencies, CPU NVTX, projected NVTX, stream dependencies, JSON
+  events, and Parquet rows;
 - exact JSON and Parquet paths;
 - output sizes.
 
