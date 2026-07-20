@@ -50,3 +50,16 @@ or synchronization dependencies.
 
 Optional fields are omitted when absent. In particular, flow events never emit
 `"dur": null`, which Perfetto counts as `json_tokenizer_failure`.
+
+Chrome JSON uses numeric process/thread IDs and metadata events to create:
+
+- `CUDA HW Device N` process tracks, sorted before host processes;
+- `CUDA HW Context C / Stream S` child tracks containing the actual CUPTI
+  kernel execution interval;
+- `CUDA Host Process P / CUDA API / NVTX Thread T` tracks containing Runtime
+  launch intervals.
+
+Selecting either a CUDA API launch slice or its GPU kernel slice in Perfetto
+shows their `cuda_launch_dependency` arrow. The kernel arguments include
+`gpuStartNs`, `gpuEndNs`, and `gpuDurationNs`; launch arguments include
+`cpuStartNs`, `cpuEndNs`, and `cpuDurationNs`.

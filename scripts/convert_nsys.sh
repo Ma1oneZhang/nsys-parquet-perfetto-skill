@@ -15,7 +15,7 @@ fi
 output_root=${NSYS_WORKSPACE_ROOT:-$HOME/.nsys-workspace}
 cache_root=${XDG_CACHE_HOME:-$HOME/.cache}/nsys-parquet-perfetto-skill
 converter_crate=nsys2perfetto-datafusion
-converter_version=0.1.5
+converter_version=0.1.6
 cargo_registry_root=${CARGO_HOME:-$HOME/.cargo}/registry/src
 export CARGO_TARGET_DIR="$cache_root/target"
 

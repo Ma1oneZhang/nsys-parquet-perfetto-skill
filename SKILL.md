@@ -46,7 +46,9 @@ The script performs all required steps:
    `correlationId`, matching `nsys2json`.
 7. Write matched CUDA Runtime launch slices and connect each CPU launch site to
    its GPU kernel by `(PID, correlationId)` using numeric Perfetto `s`/`f`
-   flows. Also add separate numeric flows for same-stream kernel dependencies.
+   flows. Create explicitly named and sorted `CUDA HW Device` context/stream
+   tracks whose slices use the CUPTI kernel `start`/`end` interval. Also add
+   separate numeric flows for same-stream kernel dependencies.
 8. Write aligned events and dependency edges as Parquet.
 9. Validate that the JSON is a non-empty array when `jq` is installed.
 
@@ -78,6 +80,11 @@ After conversion, report:
   events, and Parquet rows;
 - exact JSON and Parquet paths;
 - output sizes.
+
+For launch-link validation, Perfetto must contain exactly one parsed
+CPU-API-to-GPU-kernel flow per linked kernel. Flow endpoints are placed inside
+their slices and kept time-monotonic even when GPU execution starts before the
+CUDA Runtime API returns.
 
 Always end the handoff with the absolute Perfetto JSON path so the user can
 open it immediately.
