@@ -11,11 +11,27 @@ if ! command -v cargo >/dev/null 2>&1; then
   exit 1
 fi
 
-script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-project_dir="$script_dir/nsys2perfetto-datafusion"
 output_root=/home/ziyang/.nsys-workspace
 cache_root=${XDG_CACHE_HOME:-/home/ziyang/.cache}/nsys-parquet-perfetto-skill
+converter_crate=nsys2perfetto-datafusion
+converter_version=0.1.3
+cargo_registry_root=${CARGO_HOME:-/home/ziyang/.cargo}/registry/src
 export CARGO_TARGET_DIR="$cache_root/target"
+
+project_dir=$(find "$cargo_registry_root" -mindepth 2 -maxdepth 2 -type d \
+  -name "$converter_crate-$converter_version" -print -quit 2>/dev/null || true)
+if [[ -z "$project_dir" ]]; then
+  if ! cargo info "$converter_crate@$converter_version" >/dev/null; then
+    echo "Error: failed to fetch $converter_crate v$converter_version from crates.io." >&2
+    exit 1
+  fi
+  project_dir=$(find "$cargo_registry_root" -mindepth 2 -maxdepth 2 -type d \
+    -name "$converter_crate-$converter_version" -print -quit 2>/dev/null || true)
+fi
+if [[ -z "$project_dir" || ! -f "$project_dir/Cargo.toml" ]]; then
+  echo "Error: Cargo cached $converter_crate v$converter_version, but its manifest could not be located." >&2
+  exit 1
+fi
 
 mkdir -p "$output_root" "$cache_root"
 
@@ -69,7 +85,7 @@ for input in "$@"; do
     --output="$parquet_dir" \
     "$absolute_input"
 
-  echo "Converting with cargo run + Rust/DataFusion: $report_name"
+  echo "Converting with cargo run + Rust/DataFusion $converter_version: $report_name"
   cargo run --locked --release --manifest-path "$project_dir/Cargo.toml" -- \
     --parquet-dir "$parquet_dir" \
     --report "$report_name" \

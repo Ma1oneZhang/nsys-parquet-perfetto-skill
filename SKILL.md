@@ -1,11 +1,11 @@
 ---
 name: nsys-parquet-perfetto-skill
-description: Export NVIDIA Nsight Systems `.nsys-rep` or `.qdrep` reports to native Nsight Parquet tables, then use the bundled Rust and Apache DataFusion converter to create Perfetto/Chrome Trace JSON, aligned event Parquet, and CUDA stream dependency Parquet. Use when Codex needs a fast, SQLite-free conversion of Nsight CUDA kernel and NVTX timelines, Perfetto-compatible JSON without tokenizer failures, NVTX-to-kernel projection, or fixed outputs under `/home/ziyang/.nsys-workspace/REPORT_NAME/`.
+description: Export NVIDIA Nsight Systems `.nsys-rep` or `.qdrep` reports to native Nsight Parquet tables, then use the published Rust and Apache DataFusion converter to create Perfetto/Chrome Trace JSON, aligned event Parquet, and CUDA stream dependency Parquet. Use when Codex needs a fast, SQLite-free conversion of Nsight CUDA kernel and NVTX timelines, Perfetto-compatible JSON without tokenizer failures, NVTX-to-kernel projection, or fixed outputs under `/home/ziyang/.nsys-workspace/REPORT_NAME/`.
 ---
 
 # Nsight Parquet to Perfetto
 
-Use the bundled deterministic workflow. Do not use SQLite or `nsys2json.py` as
+Use the deterministic workflow. Do not use SQLite or `nsys2json.py` as
 the data path. The Rust implementation reproduces the relevant `nsys2json`
 semantics over Nsight's native Parquet export.
 
@@ -35,8 +35,10 @@ The script performs all required steps:
    system-wide alternative.
 3. Export every report with `nsys export --type=parquetdir
    --ts-normalize=true`.
-4. Execute the bundled Rust/DataFusion converter with `cargo run --locked
-   --release --manifest-path ...`. Cargo artifacts are cached outside the skill.
+4. Fetch the fixed `nsys2perfetto-datafusion` crate version from crates.io when
+   it is not already in Cargo's registry cache, then execute it directly with
+   `cargo run --locked --release --manifest-path ...`. The skill contains no
+   Rust source code and Cargo artifacts are cached outside the skill.
 5. Read `StringIds`, CUDA kernel, CUDA Runtime, and NVTX Parquet tables through
    DataFusion.
 6. Keep NVTX push/pop ranges (`eventType = 59`), map process IDs to devices,
