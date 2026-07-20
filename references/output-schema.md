@@ -36,9 +36,9 @@ dependencies.
 - `cat = cuda_api` matched CPU CUDA Runtime launch calls;
 - `cat = cuda_memcpy` H2D, D2H, and D2D hardware copy intervals with detailed
   byte, memory-kind, device/context, address, and bandwidth arguments;
-- `cat = nvtx` CPU NVTX push/pop ranges;
-- `cat = nvtx-kernel` NVTX ranges projected to associated kernels in the same
-  source-thread lane group as its CUDA API and CPU NVTX slices;
+- `cat = nvtx` CPU NVTX push/pop ranges emitted as ordered `B`/`E` events;
+- `cat = nvtx-kernel` NVTX ranges projected to associated kernels, also emitted
+  as ordered `B`/`E` events so Perfetto retains parent-child depth;
 - `cat = cuda_launch_dependency` numeric-ID `s`/`f` flows from the CPU launch
   slice to the corresponding GPU kernel;
 - `cat = cuda_memcpy_dependency` numeric-ID `s`/`f` flows from the CPU API
@@ -49,12 +49,13 @@ Optional fields are omitted when absent. In particular, flow events never emit
 
 Chrome JSON uses numeric process/thread IDs and metadata events to create:
 
-- `CUDA HW PID P / deviceId N` process tracks, sorted before host processes;
+- `CUDA Device N / Source PID P` process tracks; there is no separate CUDA Host
+  Process;
 - `CUDA HW Context C / Stream S` child tracks containing the actual CUPTI
   kernel execution interval;
-- `CUDA Host Process P / CUDA API / NVTX Thread T / Lane L` tracks containing
-  Runtime, CPU NVTX, and projected NVTX-kernel intervals. Extra adjacent lanes
-  are created only when intervals overlap, preventing Perfetto slice drops.
+- `NVTX Kernel T`, `CUDA API T / Lane L`, and `NVTX Thread T` child tracks under
+  the matching device. NVTX nesting is represented on one stack track per
+  source thread; extra adjacent lanes are used only for overlapping CUDA APIs.
 
 Selecting either a CUDA API launch slice or its GPU kernel slice in Perfetto
 shows their `cuda_launch_dependency` arrow. The kernel arguments include

@@ -48,9 +48,11 @@ The script performs all required steps:
 7. Write matched CUDA Runtime launch slices and connect each CPU launch site to
    its GPU kernel by `(PID, correlationId)` using numeric Perfetto `s`/`f`
    flows. Create explicitly named and sorted process-aware CUDA hardware
-   context/stream tracks whose slices use CUPTI `start`/`end` intervals. Put
-   CUDA API, CPU NVTX, and projected NVTX-kernel intervals in adjacent,
-   overlap-safe lanes for each source thread. Do not connect consecutive
+   context/stream tracks whose slices use CUPTI `start`/`end` intervals. Under
+   every device, create separate HW Context/Stream, NVTX Kernel, CUDA API, and
+   NVTX Thread children. Emit both NVTX kinds as ordered `B`/`E` stacks so
+   Perfetto preserves their push/pop parent-child hierarchy. Use extra lanes
+   only for overlapping CUDA API complete events. Do not connect consecutive
    kernels on a stream.
 8. Add detailed H2D, D2H, and D2D slices and API-to-copy flows, then write
    aligned events as Parquet.
