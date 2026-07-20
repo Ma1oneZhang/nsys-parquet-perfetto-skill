@@ -10,8 +10,9 @@ events:
 - `cat`, `name`, `ph`: Perfetto trace-event fields.
 - `ts_us`, `dur_us`: microseconds relative to the first included event.
 - `aligned_ts_us`: microseconds relative to the first
-  `CriticalPath/MeasuredBatch/.../batch_0` CPU NVTX range.
-- `pid`, `tid`: human-readable device and stream/NVTX track labels.
+  `CriticalPath/MeasuredBatch/.../batch_0` CPU NVTX range, or relative to the
+  first trace event when that optional range is absent.
+- `pid`, `tid`: human-readable process/device and stream/NVTX track labels.
 - `args_json`: kernel launch metadata and projected `NVTXRegions`.
 - `event_id`: stable readable kernel ID.
 - `stream_id`, `correlation_id`, `stream_sequence`: CUDA linkage fields.
@@ -37,7 +38,8 @@ or synchronization dependencies.
 
 - `cat = cuda` complete kernel events;
 - `cat = nvtx` CPU NVTX push/pop ranges;
-- `cat = nvtx-kernel` NVTX ranges projected to associated kernels;
+- `cat = nvtx-kernel` NVTX ranges projected to associated kernels, with a
+  separate projection track for every matched CUDA device;
 - `cat = cuda_dependency` numeric-ID `s`/`f` flows.
 
 Optional fields are omitted when absent. In particular, flow events never emit

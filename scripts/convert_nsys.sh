@@ -11,11 +11,12 @@ if ! command -v cargo >/dev/null 2>&1; then
   exit 1
 fi
 
-output_root=/home/ziyang/.nsys-workspace
-cache_root=${XDG_CACHE_HOME:-/home/ziyang/.cache}/nsys-parquet-perfetto-skill
+: "${HOME:?Error: HOME is not set}"
+output_root=${NSYS_WORKSPACE_ROOT:-$HOME/.nsys-workspace}
+cache_root=${XDG_CACHE_HOME:-$HOME/.cache}/nsys-parquet-perfetto-skill
 converter_crate=nsys2perfetto-datafusion
-converter_version=0.1.3
-cargo_registry_root=${CARGO_HOME:-/home/ziyang/.cargo}/registry/src
+converter_version=0.1.4
+cargo_registry_root=${CARGO_HOME:-$HOME/.cargo}/registry/src
 export CARGO_TARGET_DIR="$cache_root/target"
 
 project_dir=$(find "$cargo_registry_root" -mindepth 2 -maxdepth 2 -type d \

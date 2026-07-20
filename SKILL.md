@@ -1,6 +1,6 @@
 ---
 name: nsys-parquet-perfetto-skill
-description: Export NVIDIA Nsight Systems `.nsys-rep` or `.qdrep` reports to native Nsight Parquet tables, then use the published Rust and Apache DataFusion converter to create Perfetto/Chrome Trace JSON, aligned event Parquet, and CUDA stream dependency Parquet. Use when Codex needs a fast, SQLite-free conversion of Nsight CUDA kernel and NVTX timelines, Perfetto-compatible JSON without tokenizer failures, NVTX-to-kernel projection, or fixed outputs under `/home/ziyang/.nsys-workspace/REPORT_NAME/`.
+description: Export NVIDIA Nsight Systems `.nsys-rep` or `.qdrep` reports to native Nsight Parquet tables, then use the published Rust and Apache DataFusion converter to create Perfetto/Chrome Trace JSON, aligned event Parquet, and CUDA stream dependency Parquet. Use when Codex needs a fast, SQLite-free conversion of Nsight CUDA kernel and NVTX timelines, Perfetto-compatible JSON without tokenizer failures, multi-device NVTX-to-kernel projection, or outputs under `$HOME/.nsys-workspace/REPORT_NAME/`.
 ---
 
 # Nsight Parquet to Perfetto
@@ -49,12 +49,12 @@ The script performs all required steps:
 8. Write aligned events and dependency edges as Parquet.
 9. Validate that the JSON is a non-empty array when `jq` is installed.
 
-## Fixed output layout
+## Output layout
 
 For `model.nsys-rep`, always write under:
 
 ```text
-/home/ziyang/.nsys-workspace/model/
+$HOME/.nsys-workspace/model/
 ├── parquet/                               # Native Nsight tables
 ├── model.perfetto.json                    # Load this in Perfetto
 ├── model.perfetto.parquet                 # NVTX/kernel analysis table
@@ -63,6 +63,9 @@ For `model.nsys-rep`, always write under:
 
 The report name is the input basename with `.nsys-rep` or `.qdrep` removed.
 Do not place final JSON beside the source report.
+
+Set `NSYS_WORKSPACE_ROOT` to override `$HOME/.nsys-workspace`. Do not hard-code
+a user home directory in the script or instructions.
 
 ## Verify results
 
