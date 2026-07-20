@@ -52,8 +52,9 @@ The script performs all required steps:
    every device, create separate HW Context/Stream, NVTX Kernel, CUDA API, and
    NVTX Thread children. Emit both NVTX kinds as ordered `B`/`E` stacks so
    Perfetto preserves their push/pop parent-child hierarchy. Use extra lanes
-   only for overlapping CUDA API complete events. Do not connect consecutive
-   kernels on a stream.
+   only for overlapping CUDA API complete events. Within every device, group
+   equal source thread IDs and order each group as NVTX Kernel, NVTX Thread,
+   then CUDA API. Do not connect consecutive kernels on a stream.
 8. Add detailed H2D, D2H, and D2D slices and API-to-copy flows, then write
    aligned events as Parquet.
 9. Validate that the JSON is a non-empty array when `jq` is installed.

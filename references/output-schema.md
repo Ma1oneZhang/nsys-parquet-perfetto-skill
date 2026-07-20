@@ -56,6 +56,8 @@ Chrome JSON uses numeric process/thread IDs and metadata events to create:
 - `NVTX Kernel T`, `CUDA API T / Lane L`, and `NVTX Thread T` child tracks under
   the matching device. NVTX nesting is represented on one stack track per
   source thread; extra adjacent lanes are used only for overlapping CUDA APIs.
+  Equal thread IDs are adjacent and ordered `NVTX Kernel`, `NVTX Thread`, then
+  `CUDA API`.
 
 Selecting either a CUDA API launch slice or its GPU kernel slice in Perfetto
 shows their `cuda_launch_dependency` arrow. The kernel arguments include
