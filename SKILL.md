@@ -1,6 +1,6 @@
 ---
 name: nsys-parquet-perfetto-skill
-description: Export NVIDIA Nsight Systems `.nsys-rep` or `.qdrep` reports to native Nsight Parquet tables, then use the published Rust and Apache DataFusion converter to create Perfetto/Chrome Trace JSON, aligned event Parquet, and CUDA stream dependency Parquet. Use when Codex needs a fast, SQLite-free conversion of Nsight CUDA kernel, CUDA Runtime launch, and NVTX timelines; CPU-launch-to-GPU-kernel flows; Perfetto-compatible JSON without tokenizer failures; multi-device NVTX-to-kernel projection; or outputs under `$HOME/.nsys-workspace/REPORT_NAME/`.
+description: Export NVIDIA Nsight Systems `.nsys-rep` or `.qdrep` reports to native Nsight Parquet tables, then use the published Rust and Apache DataFusion converter to create Perfetto/Chrome Trace JSON and aligned event Parquet. Use when Codex needs a fast, SQLite-free conversion of Nsight CUDA kernel, H2D/D2H/D2D memcpy, CUDA Runtime launch, and NVTX timelines; CPU-API-to-GPU flows; Perfetto-compatible JSON without tokenizer failures; process-aware multi-device tracks; or outputs under `$HOME/.nsys-workspace/REPORT_NAME/`.
 ---
 
 # Nsight Parquet to Perfetto
@@ -35,21 +35,25 @@ The script performs all required steps:
    system-wide alternative.
 3. Export every report with `nsys export --type=parquetdir
    --ts-normalize=true`.
-4. Fetch the fixed `nsys2perfetto-datafusion` crate version from crates.io when
-   it is not already in Cargo's registry cache, then execute it directly with
+4. Query crates.io for the latest stable `nsys2perfetto-datafusion` version,
+   fetch it when it is not already in Cargo's registry cache, then execute it with
    `cargo run --locked --release --manifest-path ...`. The skill contains no
-   Rust source code and Cargo artifacts are cached outside the skill.
-5. Read `StringIds`, CUDA kernel, CUDA Runtime, and NVTX Parquet tables through
-   DataFusion.
+   Rust source code and Cargo artifacts are cached outside the skill. Set
+   `NSYS2PERFETTO_VERSION` only when a reproducible historical version is needed.
+5. Read `StringIds`, CUDA kernel, CUDA memcpy, CUDA Runtime, and NVTX Parquet
+   tables through DataFusion.
 6. Keep NVTX push/pop ranges (`eventType = 59`), map process IDs to devices,
    and project NVTX ranges to kernels through Runtime overlap and
    `correlationId`, matching `nsys2json`.
 7. Write matched CUDA Runtime launch slices and connect each CPU launch site to
    its GPU kernel by `(PID, correlationId)` using numeric Perfetto `s`/`f`
-   flows. Create explicitly named and sorted `CUDA HW Device` context/stream
-   tracks whose slices use the CUPTI kernel `start`/`end` interval. Also add
-   separate numeric flows for same-stream kernel dependencies.
-8. Write aligned events and dependency edges as Parquet.
+   flows. Create explicitly named and sorted process-aware CUDA hardware
+   context/stream tracks whose slices use CUPTI `start`/`end` intervals. Put
+   CUDA API, CPU NVTX, and projected NVTX-kernel intervals in adjacent,
+   overlap-safe lanes for each source thread. Do not connect consecutive
+   kernels on a stream.
+8. Add detailed H2D, D2H, and D2D slices and API-to-copy flows, then write
+   aligned events as Parquet.
 9. Validate that the JSON is a non-empty array when `jq` is installed.
 
 ## Output layout
@@ -61,7 +65,7 @@ $HOME/.nsys-workspace/model/
 ├── parquet/                               # Native Nsight tables
 ├── model.perfetto.json                    # Load this in Perfetto
 ├── model.perfetto.parquet                 # NVTX/kernel analysis table
-└── model.kernel_dependencies.parquet      # Same-stream dependency edges
+└── model.kernel_dependencies.parquet      # Empty compatibility table
 ```
 
 The report name is the input basename with `.nsys-rep` or `.qdrep` removed.
@@ -76,8 +80,8 @@ After conversion, report:
 
 - selected `nsys` version;
 - Rust converter summary counts for kernels, linked CUDA API launches,
-  launch dependencies, CPU NVTX, projected NVTX, stream dependencies, JSON
-  events, and Parquet rows;
+  launch dependencies, memcpy directions and links, CPU NVTX, projected NVTX,
+  JSON events, and Parquet rows;
 - exact JSON and Parquet paths;
 - output sizes.
 
@@ -92,5 +96,5 @@ open it immediately.
 Treat any nonzero command status as a failed conversion. Never publish partial
 JSON after an Nsight exporter or DataFusion error. Source reports are read-only.
 
-For output columns and dependency semantics, read
+For output columns and flow semantics, read
 [references/output-schema.md](references/output-schema.md).

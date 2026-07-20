@@ -3,10 +3,11 @@
 ## Event Parquet
 
 `<report>.perfetto.parquet` contains matched CUDA Runtime launch calls, CPU
-NVTX, projected NVTX, and CUDA kernel events:
+NVTX, projected NVTX, CUDA kernel, and CUDA memcpy events:
 
 - `report`: report basename.
-- `event_type`: `cuda_api`, `cuda_kernel`, `nvtx`, or `nvtx_kernel`.
+- `event_type`: `cuda_api`, `cuda_kernel`, `cuda_memcpy_h2d`,
+  `cuda_memcpy_d2h`, `cuda_memcpy_d2d`, `nvtx`, or `nvtx_kernel`.
 - `cat`, `name`, `ph`: Perfetto trace-event fields.
 - `ts_us`, `dur_us`: microseconds relative to the first included event.
 - `aligned_ts_us`: microseconds relative to the first
@@ -18,21 +19,14 @@ NVTX, projected NVTX, and CUDA kernel events:
 - `launch_event_id`: on a kernel row, the CPU CUDA Runtime event that launched
   it; join this value to the `event_id` of a `cuda_api` row.
 - `stream_id`, `correlation_id`, `stream_sequence`: CUDA linkage fields.
-- `depends_on_event_id`, `dependency_type`: predecessor link; dependency type
-  is `same_stream_order`.
+- `depends_on_event_id`, `dependency_type`: reserved and null; consecutive
+  kernels on a stream are not linked.
 
 ## Dependency Parquet
 
-`<report>.kernel_dependencies.parquet` contains one row per adjacent pair of
-kernels on the same `(device, context, stream)`:
-
-- predecessor and successor IDs, names, timestamps, and durations;
-- `stream_id` and successor `stream_sequence`;
-- nonnegative `gap_us` between predecessor end and successor start;
-- `dependency_type = same_stream_order`.
-
-This represents CUDA stream ordering. It does not infer cross-stream CUDA event
-or synchronization dependencies.
+`<report>.kernel_dependencies.parquet` is an empty, schema-valid compatibility
+table. The converter does not infer stream ordering or cross-stream CUDA event
+dependencies.
 
 ## Perfetto JSON
 
@@ -40,24 +34,27 @@ or synchronization dependencies.
 
 - `cat = cuda` complete kernel events;
 - `cat = cuda_api` matched CPU CUDA Runtime launch calls;
+- `cat = cuda_memcpy` H2D, D2H, and D2D hardware copy intervals with detailed
+  byte, memory-kind, device/context, address, and bandwidth arguments;
 - `cat = nvtx` CPU NVTX push/pop ranges;
-- `cat = nvtx-kernel` NVTX ranges projected to associated kernels, with a
-  separate projection track for every matched CUDA device;
+- `cat = nvtx-kernel` NVTX ranges projected to associated kernels in the same
+  source-thread lane group as its CUDA API and CPU NVTX slices;
 - `cat = cuda_launch_dependency` numeric-ID `s`/`f` flows from the CPU launch
   slice to the corresponding GPU kernel;
-- `cat = cuda_dependency` numeric-ID `s`/`f` flows between adjacent kernels on
-  the same stream.
+- `cat = cuda_memcpy_dependency` numeric-ID `s`/`f` flows from the CPU API
+  slice to the corresponding GPU copy interval.
 
 Optional fields are omitted when absent. In particular, flow events never emit
 `"dur": null`, which Perfetto counts as `json_tokenizer_failure`.
 
 Chrome JSON uses numeric process/thread IDs and metadata events to create:
 
-- `CUDA HW Device N` process tracks, sorted before host processes;
+- `CUDA HW PID P / deviceId N` process tracks, sorted before host processes;
 - `CUDA HW Context C / Stream S` child tracks containing the actual CUPTI
   kernel execution interval;
-- `CUDA Host Process P / CUDA API / NVTX Thread T` tracks containing Runtime
-  launch intervals.
+- `CUDA Host Process P / CUDA API / NVTX Thread T / Lane L` tracks containing
+  Runtime, CPU NVTX, and projected NVTX-kernel intervals. Extra adjacent lanes
+  are created only when intervals overlap, preventing Perfetto slice drops.
 
 Selecting either a CUDA API launch slice or its GPU kernel slice in Perfetto
 shows their `cuda_launch_dependency` arrow. The kernel arguments include

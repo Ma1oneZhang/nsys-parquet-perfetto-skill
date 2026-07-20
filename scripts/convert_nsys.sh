@@ -15,20 +15,31 @@ fi
 output_root=${NSYS_WORKSPACE_ROOT:-$HOME/.nsys-workspace}
 cache_root=${XDG_CACHE_HOME:-$HOME/.cache}/nsys-parquet-perfetto-skill
 converter_crate=nsys2perfetto-datafusion
-converter_version=0.1.6
 cargo_registry_root=${CARGO_HOME:-$HOME/.cargo}/registry/src
 export CARGO_TARGET_DIR="$cache_root/target"
+
+converter_spec=$converter_crate
+if [[ -n ${NSYS2PERFETTO_VERSION:-} ]]; then
+  converter_spec="$converter_crate@$NSYS2PERFETTO_VERSION"
+fi
+if ! converter_info=$(cargo info "$converter_spec"); then
+  echo "Error: failed to query $converter_spec from crates.io." >&2
+  exit 1
+fi
+converter_version=$(awk '/^version: / { print $2; exit }' <<<"$converter_info")
+if [[ -z "$converter_version" ]]; then
+  echo "Error: crates.io metadata did not report a version for $converter_spec." >&2
+  exit 1
+fi
 
 project_dir=$(find "$cargo_registry_root" -mindepth 2 -maxdepth 2 -type d \
   -name "$converter_crate-$converter_version" -print -quit 2>/dev/null || true)
 if [[ -z "$project_dir" ]]; then
-  if ! cargo info "$converter_crate@$converter_version" >/dev/null; then
-    echo "Error: failed to fetch $converter_crate v$converter_version from crates.io." >&2
-    exit 1
-  fi
+  cargo info "$converter_crate@$converter_version" >/dev/null
   project_dir=$(find "$cargo_registry_root" -mindepth 2 -maxdepth 2 -type d \
     -name "$converter_crate-$converter_version" -print -quit 2>/dev/null || true)
 fi
+echo "Using $converter_crate v$converter_version from crates.io"
 if [[ -z "$project_dir" || ! -f "$project_dir/Cargo.toml" ]]; then
   echo "Error: Cargo cached $converter_crate v$converter_version, but its manifest could not be located." >&2
   exit 1
