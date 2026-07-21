@@ -8,8 +8,9 @@ device track; an entirely eventless export is rejected.
 
 ## Event Parquet
 
-`<report>.perfetto.parquet` contains matched CUDA Runtime launch calls, CPU
-NVTX, projected NVTX, CUDA kernel, and CUDA memcpy events:
+`<report>.perfetto.parquet` contains matched CUDA Runtime launch calls, retained
+CUDA Runtime synchronization calls, CPU NVTX, projected NVTX, CUDA kernel, and
+CUDA memcpy events:
 
 - `report`: report basename.
 - `event_type`: `cuda_api`, `cuda_kernel`, `cuda_memcpy_h2d`,
@@ -44,7 +45,9 @@ Parquet output. The JSON contains:
 - `cat = cuda_kernel_usage` kernel-only projections on the per-device `CUDA
   Core Timeline`; overlapping kernels use adjacent lanes and every kernel is
   projected exactly once;
-- `cat = cuda_api` matched CPU CUDA Runtime launch calls;
+- `cat = cuda_api` matched CPU CUDA Runtime launch calls plus retained
+  `cudaDeviceSynchronize` and `cudaStreamSynchronize` calls. Synchronization
+  calls are shown as CPU slices and do not receive fabricated GPU flows;
 - `cat = cuda_memcpy` H2D, D2H, and D2D hardware copy intervals with detailed
   byte, memory-kind, device/context, address, and bandwidth arguments on the
   original HW context/stream;

@@ -52,8 +52,11 @@ The script performs all required steps:
    `correlationId`, matching `nsys2json`.
 7. Write matched CUDA Runtime launch slices and connect each CPU launch site to
    its GPU kernel by `(PID, correlationId)` using numeric Perfetto `s`/`f`
-   flows. Create explicitly named and sorted process-aware CUDA hardware
-   context/stream tracks whose slices use CUPTI `start`/`end` intervals. Under
+   flows. Also retain `cudaDeviceSynchronize` and `cudaStreamSynchronize`
+   Runtime slices, including versioned and per-thread-default-stream suffixes;
+   these synchronization calls have no fabricated GPU flow. Create explicitly
+   named and sorted process-aware CUDA hardware context/stream tracks whose
+   slices use CUPTI `start`/`end` intervals. Under
    every device, create a topmost kernel-only `CUDA Core Timeline`, followed by
    combined H2D/D2H `PCIe Usage`, D2D copy, HW Context/Stream, NVTX Kernel,
    CUDA API, and NVTX Thread children. Preserve every kernel on its original HW
@@ -104,8 +107,9 @@ After conversion, report:
 
 - selected `nsys` version;
 - Rust converter summary counts for kernels, linked CUDA API launches, stream
-  and Core launch dependencies, memcpy directions, stream copy links, PCIe
-  projection links, CPU NVTX, projected NVTX, JSON events, and Parquet rows;
+  and Core launch dependencies, captured CUDA synchronization APIs, memcpy
+  directions, stream copy links, PCIe projection links, CPU NVTX, projected
+  NVTX, JSON events, and Parquet rows;
 - exact JSON and Parquet paths;
 - output sizes.
 
